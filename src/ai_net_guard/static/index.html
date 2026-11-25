@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI NetGuard · AI 网络医生与代理控制平台</title>
+  <style>
+    :root {
+      --bg: #080c14;
+      --bg-grad: radial-gradient(circle at 12% 0%, rgba(59,130,246,.14), transparent 40%), radial-gradient(circle at 88% 8%, rgba(99,102,241,.12), transparent 38%);
+      --panel: #111827;
+      --panel-2: #172033;
+      --panel-3: #0d1320;
+      --border: #243149;
+      --border-hi: #364a6e;
+      --text: #eaf0fa;
+      --muted: #8fa3c4;
+      --ok: #22c55e;
+      --ok-bg: rgba(34,197,94,.14);
+      --warn: #f59e0b;
+      --warn-bg: rgba(245,158,11,.15);
+      --fail: #ef4444;
+      --fail-bg: rgba(239,68,68,.15);
+      --accent: #3b82f6;
+      --accent-2: #6366f1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Helvetica Neue", sans-serif;
+      background-color: var(--bg);
+      background-image: var(--bg-grad);
+      background-attachment: fixed;
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    .wrap { max-width: 1260px; margin: 0 auto; padding: 18px 20px 44px; }
+    .hero {
+      display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;
+      background: linear-gradient(135deg, rgba(20,29,48,.96), rgba(13,19,32,.96));
+      border: 1px solid var(--border); border-radius: 18px; padding: 18px 22px; margin-bottom: 14px;
+      box-shadow: 0 12px 32px rgba(0,0,0,.32);
+    }
+    .brand { display: flex; align-items: center; gap: 13px; }
+    .brand-logo {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 18px rgba(59,130,246,.35); flex-shrink: 0;
+    }
+    .brand h1 { margin: 0 0 3px; font-size: 19px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .brand p { margin: 0; font-size: 13px; color: var(--muted); }
+    .actions { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+    .tabs {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      background: rgba(17,24,39,.85); border: 1px solid var(--border);
+      padding: 6px; border-radius: 14px; margin-bottom: 18px;
+      backdrop-filter: blur(8px);
+    }
+    .tab-btn {
+      border: 1px solid transparent; background: transparent; color: var(--muted);
+      padding: 9px 15px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all .15s ease; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .tab-btn:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .tab-btn.active {
+      background: linear-gradient(135deg, rgba(59,130,246,.22), rgba(99,102,241,.22));
+      border-color: rgba(96,165,250,.45); color: #fff;
+    }
+    .tab-pane { display: none; animation: fadeIn .18s ease; }
+    .tab-pane.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+    button.btn {
+      cursor: pointer; border: 1px solid var(--border); background: var(--panel-2); color: var(--text);
+      padding: 9px 14px; border-radius: 10px; font-size: 13px; font-weight: 600;
+      transition: all .15s ease; display: inline-flex; align-items: center; gap: 6px;
+    }
+    button.btn:hover { border-color: var(--accent); background: #202d46; }
+    button.btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); border-color: transparent; color: #fff; }
+    button.btn.primary:hover { filter: brightness(1.09); }
+    button.btn.sm { padding: 5px 10px; font-size: 12px; border-radius: 8px; }
+    button.btn.danger { border-color: rgba(239,68,68,.4); color: #fca5a5; }
+    button.btn.danger:hover { background: rgba(239,68,68,.18); }
+    button.btn:disabled { opacity: .55; cursor: not-allowed; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px;
+      border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .badge.healthy, .badge.ok, .badge.recommended { background: var(--ok-bg); color: #4ade80; border: 1px solid rgba(34,197,94,.35); }
+    .badge.degraded, .badge.warn { background: var(--warn-bg); color: #fbbf24; border: 1px solid rgba(245,158,11,.35); }
+    .badge.broken, .badge.fail, .badge.critical, .badge.restricted { background: var(--fail-bg); color: #f87171; border: 1px solid rgba(239,68,68,.35); }
+    .badge.info, .badge.normal { background: rgba(59,130,246,.16); color: #60a5fa; border: 1px solid rgba(59,130,246,.35); }
+    .panel {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+      padding: 18px 20px; margin-bottom: 16px;
+    }
+    .panel h2 {
+      margin: 0 0 14px; font-size: 15px; font-weight: 700;
+      display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1.25fr 1fr; gap: 16px; }
+    .grid-2-eq { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    @media (max-width: 960px) { .grid-2, .grid-2-eq { grid-template-columns: 1fr; } }
+    .pipeline { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    @media (max-width: 1020px) { .pipeline { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .pipeline { grid-template-columns: 1fr; } }
+    .pipe-node {
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      padding: 14px; border-top: 3px solid var(--border); transition: transform .15s ease, border-color .15s ease;
+    }
+    .pipe-node:hover { transform: translateY(-2px); border-color: var(--border-hi); }
+    .pipe-node.ok { border-top-color: var(--ok); }
+    .pipe-node.warn { border-top-color: var(--warn); }
+    .pipe-node.fail { border-top-color: var(--fail); box-shadow: 0 0 20px rgba(239,68,68,.15); }
+    .pipe-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .pipe-step { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .5px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+    .dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+    .dot.fail { background: var(--fail); box-shadow: 0 0 8px var(--fail); }
+    .pipe-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .pipe-metric {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+      color: #93c5fd; background: var(--panel-3); padding: 3px 7px; border-radius: 6px;
+      display: inline-block; margin-bottom: 6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .pipe-sum { font-size: 12px; color: var(--muted); }
+    .finding { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; margin-bottom: 10px; }
+    .finding:last-child { margin-bottom: 0; }
+    .finding-title { font-weight: 700; font-size: 14px; margin-bottom: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .finding-detail { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+    .finding-action { font-size: 13px; color: #93c5fd; }
+    .ip-card { background: linear-gradient(160deg, var(--panel-2), var(--panel-3)); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+    .ip-hero { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .ip-flag { font-size: 42px; line-height: 1; }
+    .ip-addr { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 22px; font-weight: 700; letter-spacing: .3px; }
+    .grade-pill { width: 52px; height: 52px; border-radius: 14px; font-size: 24px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .grade-S, .grade-A { background: var(--ok-bg); color: #4ade80; border: 1px solid rgba(34,197,94,.45); }
+    .grade-B, .grade-C { background: var(--warn-bg); color: #fbbf24; border: 1px solid rgba(245,158,11,.45); }
+    .grade-F { background: var(--fail-bg); color: #f87171; border: 1px solid rgba(239,68,68,.45); }
+    .kv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    .kv { background: rgba(8,12,20,.55); border: 1px solid rgba(36,49,73,.7); border-radius: 10px; padding: 9px 11px; }
+    .kv-k { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+    .kv-v { font-size: 13px; font-weight: 600; word-break: break-all; }
+    .site-section-title { font-size: 14px; font-weight: 700; color: #cbd5e1; margin: 16px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .site-section-title:first-child { margin-top: 0; }
+    .site-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 960px) { .site-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 580px) { .site-grid { grid-template-columns: 1fr; } }
+    .site-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 13px; padding: 13px 14px; display: flex; flex-direction: column; gap: 8px; }
+    .site-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .site-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .site-icon { width: 32px; height: 32px; border-radius: 9px; background: var(--panel-3); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .site-name { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .site-url { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lat-bar { height: 5px; background: #0c121e; border-radius: 99px; overflow: hidden; }
+    .lat-fill { height: 100%; border-radius: 99px; transition: width .25s ease; }
+    .lat-fill.ok { background: var(--ok); }
+    .lat-fill.warn { background: var(--warn); }
+    .lat-fill.fail { background: var(--fail); }
+    .site-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--muted); }
+    .node-wall { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+    @media (max-width: 960px) { .node-wall { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { .node-wall { grid-template-columns: 1fr; } }
+    .node-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 11px; padding: 11px 12px; cursor: pointer; transition: all .15s ease; }
+    .node-card:hover { border-color: var(--accent); background: #1e2b44; }
+    .node-card.current { border-color: var(--ok); background: rgba(34,197,94,.08); }
+    .node-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+    .node-name { font-size: 13px; font-weight: 600; word-break: break-all; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; }
+    .field-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    input, select { background: var(--panel-3); border: 1px solid var(--border); color: var(--text); padding: 9px 11px; border-radius: 9px; font-size: 13px; flex: 1; min-width: 140px; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    .chart-box { width: 100%; height: 155px; background: var(--panel-3); border: 1px solid var(--border); border-radius: 12px; padding: 8px; }
+    .event-list { max-height: 240px; overflow-y: auto; font-size: 12px; }
+    .event-item { display: flex; gap: 8px; align-items: baseline; padding: 7px 0; border-bottom: 1px dashed #1f2b40; }
+    .event-time { color: var(--muted); font-family: ui-monospace, monospace; white-space: nowrap; }
+    .lesson { background: var(--panel-2); border: 1px solid var(--border); border-radius: 13px; margin-bottom: 10px; overflow: hidden; }
+    .lesson summary { padding: 13px 16px; cursor: pointer; font-weight: 700; font-size: 14px; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+    .lesson summary::-webkit-details-marker { display: none; }
+    .lesson-body { padding: 12px 16px 15px; font-size: 13px; color: #cbd5e1; border-top: 1px solid rgba(36,49,73,.7); }
+    .live-callout { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.32); border-radius: 9px; padding: 9px 12px; margin-top: 8px; font-size: 12px; color: #bfdbfe; }
+    .oss-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 900px) { .oss-grid { grid-template-columns: 1fr; } }
+    .oss-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 15px; display: flex; flex-direction: column; gap: 6px; }
+    .oss-card a { color: #60a5fa; text-decoration: none; font-weight: 700; font-size: 14px; }
+    .oss-card a:hover { text-decoration: underline; }
+    .guide-ol { margin: 8px 0 8px 18px; padding: 0; font-size: 13px; color: #cbd5e1; }
+    .guide-ol li { margin-bottom: 7px; }
+    code { background: var(--panel-3); padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: #93c5fd; }
+    .muted { color: var(--muted); font-size: 12px; }
+    .toast { position: fixed; right: 20px; bottom: 20px; background: #1e293b; border: 1px solid var(--accent); color: #fff; padding: 11px 16px; border-radius: 11px; font-size: 13px; display: none; z-index: 99; box-shadow: 0 10px 25px rgba(0,0,0,.45); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M9 12l2 2 4-4"/>
+          </svg>
+        </div>
+        <div>
+          <h1>
+            <span>AI NetGuard v2.0</span>
+            <span id="overall-badge" class="badge info">初始化中...</span>
+          </h1>
+          <p id="overall-summary">正在执行五步全链路体检与双视角 IP 检测...</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-check" class="btn primary" onclick="runCheck()">🔍 全面体检</button>
+        <button id="btn-heal" class="btn" onclick="runHeal()">⚡ 一键切最优 AI 节点</button>
+        <button id="btn-auto" class="btn" onclick="toggleAutoHeal()">自动自愈：--</button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">🩺 全链路总览</button>
+      <button class="tab-btn" data-tab="ip" onclick="switchTab('ip')">🌍 IP 与出口体检</button>
+      <button class="tab-btn" data-tab="sites" onclick="switchTab('sites')">📡 软件与网站连通性</button>
+      <button class="tab-btn" data-tab="clash" onclick="switchTab('clash')">🎛️ Clash 控制中心</button>
+      <button class="tab-btn" data-tab="learn" onclick="switchTab('learn')">📚 网络原理学院 &amp; 指南</button>
+    </div>
+
+    <section id="tab-overview" class="tab-pane active">
+      <div class="pipeline" id="pipeline"></div>
+      <div class="panel" id="ag-watchdog-panel" style="display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:14px 18px;">
+        <div style="min-width:240px;flex:1;">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <strong style="font-size:14px;">🛡️ Antigravity 静默防空转守护</strong>
+            <span class="badge ok" id="ag-wd-badge">巡检中</span>
+            <span class="pipe-metric" id="ag-wd-counter" style="margin-bottom:0;">近 7 分钟断流：0 / 4 次</span>
+          </div>
+          <div class="muted" id="ag-wd-meta" style="font-size:12px;margin-top:6px;">
+            宽容高阈值静默恢复：7 分钟内 ≥ 4 次断流才自动切 Clash Verge 最优节点（不弹窗打扰）
+          </div>
+        </div>
+        <button class="btn sm primary" id="btn-ag-recover" onclick="triggerAntigravityRecover()">⚡ 立即帮 Antigravity 换节点</button>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <h2>
+            <span>🩺 大白话病因诊断与一键修复建议</span>
+            <span class="muted" id="last-check-time">更新时间：--</span>
+          </h2>
+          <div id="findings"></div>
+        </div>
+        <div class="panel">
+          <h2>
+            <span>📈 实时延迟趋势</span>
+            <span class="muted">蓝: Google · 绿: Antigravity · 紫: DeepSeek</span>
+          </h2>
+          <div class="chart-box" id="chart-box"></div>
+          <h2 style="margin-top:16px;"><span>📜 巡检与自愈事件日志</span></h2>
+          <div class="event-list" id="events"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-ip" class="tab-pane">
+      <div class="grid-2-eq" style="margin-bottom:16px;">
+        <div class="ip-card" id="domestic-ip-card"></div>
+        <div class="ip-card" id="proxy-ip-card"></div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <h2>
+            <span>🔎 DNS 真实解析防泄露透视</span>
+            <span class="muted">一眼看清国内域名有没有被 Fake-IP (198.18.x) 劫持</span>
+          </h2>
+          <table>
+            <thead>
+              <tr><th>检测目标</th><th>域名</th><th>实际解析 IP</th><th>状态判断</th></tr>
+            </thead>
+            <tbody id="dns-rows"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h2>
+            <span>🕒 出口 IP 变更历史记录</span>
+            <span class="muted">自动持久化，重启不丢失</span>
+          </h2>
+          <div style="max-height:280px;overflow-y:auto;">
+            <table>
+              <thead>
+                <tr><th>时间</th><th>地区</th><th>出口 IP / 运营商</th><th>评级</th></tr>
+              </thead>
+              <tbody id="ip-history-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-sites" class="tab-pane">
+      <div class="panel">
+        <h2>
+          <span>📡 常用 AI 软件与开发网站连通性矩阵</span>
+          <button class="btn sm primary" onclick="runCheck()">🔄 全部重新测速</button>
+        </h2>
+        <div id="sites-container"></div>
+      </div>
+      <div class="panel">
+        <h2><span>➕ 添加自定义检测网站</span></h2>
+        <div class="field-row">
+          <input id="site-name" placeholder="名称，如：学校教务处 / HuggingFace" />
+          <input id="site-url" placeholder="网址，如：https://huggingface.co" />
+          <select id="site-mode" style="max-width:160px;">
+            <option value="proxy">走代理检测</option>
+            <option value="direct">走国内直连</option>
+          </select>
+          <button class="btn primary" onclick="addCustomSite()">添加到监测列表</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-clash" class="tab-pane">
+      <div class="panel" id="upgrade-guide-card">
+        <h2>
+          <span>🚀 新手 3 步切到原生稳定分流（Clash Verge Rev）</span>
+          <button class="btn primary sm" onclick="copyOverride()">📋 一键复制防断连分流脚本</button>
+        </h2>
+        <div class="muted">已为你把原生开源的 <strong>Clash Verge.app</strong> 预装到「应用程序」里。切过去后，国内 DeepSeek 永不被拖垮，且本平台可以全自动帮你测速换节点：</div>
+        <ol class="guide-ol">
+          <li>打开 <strong>Clash Verge</strong>，在「订阅」里粘贴你的机场订阅链接并更新。</li>
+          <li>点右上角「<strong>📋 一键复制防断连分流脚本</strong>」，在订阅右键 → <strong>全局扩展脚本 / 编辑脚本</strong> → 粘贴保存并启用（会自动剔除香港和说明节点、创建固定主节点的 <code>🤖 AI-稳定池</code>、把 DeepSeek 等国内 AI 强制直连）。</li>
+          <li>退出桌面上的 <strong>Shadowrocket</strong>，在 Clash Verge 中打开 <strong>系统代理 + TUN 模式</strong>，再回来点「🔍 全面体检」即可看到下方节点墙自动激活！</li>
+        </ol>
+        <div class="muted" id="override-path-text">本机脚本位置：加载中...</div>
+      </div>
+
+      <div class="panel">
+        <h2>
+          <span>🎛️ Clash / Mihomo 节点控制墙</span>
+          <span id="mihomo-badge" class="badge warn">未连接</span>
+        </h2>
+        <div id="mihomo-status-text" class="muted" style="margin-bottom:12px;">正在探测本地控制器端口...</div>
+        <div class="finding" id="anti-ban-banner" style="margin-bottom:12px;border-left:3px solid #22c55e;">
+          <div class="finding-title">
+            <span>🛡️ 防封控频率安全锁</span>
+            <span id="anti-ban-badge" class="badge ok">已开启保护</span>
+          </div>
+          <div class="finding-detail" id="anti-ban-stats">网速变慢绝不切、本机断网不瞎切、单点闪断不切，仅彻底不可用连续达阈值才切。</div>
+          <div class="muted" id="anti-ban-quota">本小时自动切换：0/2 次 · 今日：0/5 次 · 冷却：30 分钟</div>
+        </div>
+        <div class="field-row" style="margin-bottom:12px;">
+          <input id="cfg-api" placeholder="控制端口 如 http://127.0.0.1:9097" />
+          <input id="cfg-secret" placeholder="API 密钥（无则留空）" type="password" />
+          <input id="cfg-fail-th" type="number" min="1" max="20" style="max-width:110px;" placeholder="连续失败阈值" title="连续彻底不可用几次才切换（默认 5）" />
+          <input id="cfg-interval" type="number" min="10" max="600" style="max-width:110px;" placeholder="巡检间隔(秒)" title="后台自动巡检间隔（秒）" />
+          <input id="cfg-cooldown-min" type="number" min="5" max="240" style="max-width:110px;" placeholder="冷却(分)" title="两次自动切节点最小冷却分钟数（默认 30 分钟）" />
+          <input id="cfg-max-hour" type="number" min="1" max="10" style="max-width:110px;" placeholder="每小时上限" title="每小时最多自动切节点次数（默认 2）" />
+          <input id="cfg-max-day" type="number" min="1" max="30" style="max-width:110px;" placeholder="每日上限" title="每天最多自动切节点次数（默认 5）" />
+          <button class="btn" onclick="saveConfig()">保存配置</button>
+        </div>
+        <div class="field-row">
+          <select id="group-select" onchange="onGroupChanged()"></select>
+          <button class="btn" id="btn-batch-test" onclick="batchTestDelays()">🚀 批量测速当前组</button>
+          <button class="btn primary" onclick="runHeal()">⚡ 自动切到最快 AI 节点</button>
+        </div>
+        <div class="node-wall" id="node-wall"></div>
+      </div>
+
+      <div class="panel">
+        <h2>
+          <span>🔀 实时流量分流透视（Live Connections）</span>
+          <button class="btn sm" onclick="loadConnections()">🔄 刷新实时连接</button>
+        </h2>
+        <div class="muted" style="margin-bottom:10px;">接入 Clash Verge 后，这里会实时展示电脑上每个软件发出的连接实际命中了什么规则、走了 <code>DIRECT</code> 还是 <code>🤖 AI-稳定池</code>，彻底告别黑盒！</div>
+        <div style="max-height:280px;overflow-y:auto;">
+          <table>
+            <thead>
+              <tr><th>软件 / 进程</th><th>目标域名 / IP</th><th>命中规则</th><th>实际出口链</th></tr>
+            </thead>
+            <tbody id="conn-rows">
+              <tr><td colspan="4" class="muted">点击右上角「刷新实时连接」查看（需先开启 Clash Verge）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="tab-learn" class="tab-pane">
+      <div class="panel">
+        <h2><span>🧭 本平台 4 大高频场景操作速查</span></h2>
+        <div class="grid-2-eq">
+          <div class="finding">
+            <div class="finding-title">1. 日常使用看哪里？</div>
+            <div class="finding-detail">打开本页（收藏 <code>http://127.0.0.1:18888</code> 或终端敲 <code>net-ui</code>），只要「🩺 全链路总览」5 个步骤全绿，就可以放心写代码、挂机跑 Agent。</div>
+          </div>
+          <div class="finding">
+            <div class="finding-title">2. 突然断连 / AI 狂重试怎么 10 秒查病因？</div>
+            <div class="finding-detail">本平台完全跑在你 Mac 本机，<strong>彻底断外网也能秒开</strong>。点「🔍 全面体检」看 5 步流水线哪一步变红：第 3 步红=假连接/后端死端口；第 4 步黄/红=跳 IP 或落入香港；第 2 步黄=DNS 劫持。</div>
+          </div>
+          <div class="finding">
+            <div class="finding-title">3. 怎么让 AI 遇故障自己换节点不卡死？</div>
+            <div class="finding-detail">切到 Clash Verge Rev 并粘贴分流脚本后，保持顶部「自动自愈：已开启」。当 AI 专线连续失败达到阈值，本工具会自动对非香港节点测速并切换至最快节点。</div>
+          </div>
+          <div class="finding">
+            <div class="finding-title">4. 军训挂机自动化怎么联动？</div>
+            <div class="finding-detail">你的无人值守脚本 <code>ai-loop.sh</code> 已默认内置 <code>ai-net wait-healthy</code> 门禁：每次开跑和重试前先确认绿灯，断网就自动暂停等自愈恢复，绝不白白耗尽重试次数。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>
+          <span>📚 说人话的网络原理学院（结合你此刻电脑的真实数据）</span>
+          <span class="muted">点开每一课边看边懂</span>
+        </h2>
+        <div id="academy-lessons"></div>
+      </div>
+
+      <div class="panel">
+        <h2><span>🌟 GitHub 精选开源参考与进阶学习项目</span></h2>
+        <div class="oss-grid">
+          <div class="oss-card">
+            <a href="https://github.com/jason5ng32/MyIP" target="_blank" rel="noreferrer">jason5ng32 / MyIP</a>
+            <div class="muted">全能开源 IP 体检工具箱（本项目「IP 与出口体检」灵感来源）：支持多源国内外 IP 对比、DNS/WebRTC 泄露检测、延迟与网站可用性测试。</div>
+          </div>
+          <div class="oss-card">
+            <a href="https://github.com/xykt/IPQuality" target="_blank" rel="noreferrer">xykt / IPQuality</a>
+            <div class="muted">极受欢迎的 IP 纯净度与风险评分脚本：专门判断代理出口是家宽还是机房 IP、查看 ASN 风控分及流媒体/AI 服务解锁状态。</div>
+          </div>
+          <div class="oss-card">
+            <a href="https://github.com/Zephyruso/zashboard" target="_blank" rel="noreferrer">Zephyruso / zashboard</a>
+            <div class="muted">高颜值现代 Mihomo/Clash 控制台（本项目「控制中心」设计灵感）：支持节点卡片墙、批量测速、实时流量连接透视。</div>
+          </div>
+          <div class="oss-card">
+            <a href="https://github.com/MetaCubeX/metacubexd" target="_blank" rel="noreferrer">MetaCubeX / metacubexd</a>
+            <div class="muted">Mihomo 内核官方 Web 面板：适合学习 Clash 规则匹配、实时连接监控、日志流和代理组策略配置。</div>
+          </div>
+          <div class="oss-card">
+            <a href="https://github.com/MetaCubeX/mihomo" target="_blank" rel="noreferrer">MetaCubeX / mihomo</a>
+            <div class="muted">Clash Verge Rev 底层使用的 Go 语言开源代理内核，搞懂它的 TUN 模式、Fake-IP DNS 和 fallback 策略组就能彻底玩转代理网络。</div>
+          </div>
+          <div class="oss-card">
+            <a href="https://github.com/clash-verge-rev/clash-verge-rev" target="_blank" rel="noreferrer">clash-verge-rev / clash-verge-rev</a>
+            <div class="muted">已帮你预装的 Mac 原生开源代理客户端（基于 Tauri + Mihomo），原生支持 JS 全局扩展覆写脚本与稳定 TUN。</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <script>
+    let currentState = null;
+    let nodeDelays = {};
+
+    const ICONS = {
+      antigravity: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M12 3l8 17-8-4-8 4 8-17z"/></svg>',
+      gemini: '<svg width="18" height="18" viewBox="0 0 24 24" fill="#a78bfa"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg>',
+      openai: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16M6.3 6.3l11.4 11.4M17.7 6.3L6.3 17.7"/></svg>',
+      claude: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2.2"><path d="M12 3v18M5.6 5.6l12.8 12.8M3 12h18M5.6 18.4L18.4 5.6"/></svg>',
+      cursor: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#e2e8f0" stroke-width="2"><polygon points="4 4 20 11 12 13 10 20 4 4"/></svg>',
+      github: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f8fafc" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9 19c-3 1-3-1.5-4-2m8 4v-3.5c0-1 .1-1.4-.5-2 2.2-.2 4.5-1.1 4.5-5a3.9 3.9 0 0 0-1-2.7 3.6 3.6 0 0 0-.1-2.7s-.9-.3-2.8 1a9.6 9.6 0 0 0-5.2 0c-1.9-1.3-2.8-1-2.8-1a3.6 3.6 0 0 0-.1 2.7A3.9 3.9 0 0 0 5 10.5c0 3.9 2.3 4.8 4.5 5-.4.4-.5 1-.5 2V21"/></svg>',
+      deepseek: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.1"><path d="M3 14c3-5 8-8 14-6 2 .7 3 2.3 4 4-2 4-7 7-13 6-2.5-.4-4-1.8-5-4z"/><circle cx="15" cy="11" r="1.2" fill="#38bdf8"/></svg>',
+      kimi: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2"><path d="M18 14.5A6.5 6.5 0 0 1 9.5 6 6.5 6.5 0 1 0 18 14.5z"/></svg>',
+      doubao: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2"><circle cx="12" cy="12" r="8"/><circle cx="9.5" cy="10.5" r="1" fill="#f472b6"/><circle cx="14.5" cy="10.5" r="1" fill="#f472b6"/><path d="M9 14.5c1 1.2 5 1.2 6 0"/></svg>',
+      qwen: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h6v6H9z"/></svg>',
+      google: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.2"><path d="M20 12.2a8 8 0 1 1-2.3-5.7"/><path d="M12 12h8"/></svg>',
+      youtube: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><rect x="3" y="6" width="18" height="12" rx="3"/><polygon points="10 9.5 15 12 10 14.5" fill="#f87171"/></svg>',
+      npm: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fb7185" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/><path d="M8 7v10M13 11v6"/></svg>',
+      pypi: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z"/><path d="M12 12l8-4.5M12 12v9M12 12L4 7.5"/></svg>',
+      globe: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>'
+    };
+
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.style.display = 'block';
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => { el.style.display = 'none'; }, 3400);
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
+    function statusText(st) {
+      return { healthy: '全部健康', degraded: '存在隐患', broken: '发现故障', ok: '正常', warn: '警告', fail: '失败' }[st] || st;
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+      try { localStorage.setItem('ai_net_guard_tab', name); } catch (_) {}
+    }
+
+    function renderChart(history) {
+      const box = document.getElementById('chart-box');
+      if (!history || history.length < 2) {
+        box.innerHTML = '<div class="muted" style="padding:54px 0;text-align:center;">正在收集巡检数据（30 秒/次），第 2 次后生成实时延迟折线...</div>';
+        return;
+      }
+      const w = 620, h = 135, pad = 12;
+      const vals = history.flatMap(x => [x.google_ms || 0, x.antigravity_ms || 0, x.deepseek_ms || 0]);
+      const maxV = Math.max(800, ...vals);
+      const makeLine = (key, color) => {
+        const pts = history.map((item, i) => {
+          const x = pad + (i / (history.length - 1)) * (w - pad * 2);
+          const y = h - pad - ((item[key] || 0) / maxV) * (h - pad * 2);
+          return `${x.toFixed(1)},${y.toFixed(1)}`;
+        }).join(' ');
+        return `<polyline fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round" points="${pts}" />`;
+      };
+      box.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" preserveAspectRatio="none">
+          <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#243149" stroke-width="1"/>
+          <text x="${pad}" y="15" fill="#8fa3c4" font-size="11">峰值刻度: ${maxV} ms</text>
+          ${makeLine('deepseek_ms', '#a855f7')}
+          ${makeLine('antigravity_ms', '#22c55e')}
+          ${makeLine('google_ms', '#3b82f6')}
+        </svg>`;
+    }
+
+    function renderIpCards(r) {
+      const dom = r.domestic_ip || {};
+      const locStr = [dom.country, dom.region, dom.city].filter(Boolean).join(' · ') || '未知地区';
+      document.getElementById('domestic-ip-card').innerHTML = `
+        <div class="ip-hero">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="ip-flag">${escapeHtml(dom.flag || '🇨🇳')}</div>
+            <div>
+              <div class="muted">国内直连视角（你的真实本地宽带 / 校园网）</div>
+              <div class="ip-addr">${escapeHtml(dom.reachable ? dom.ip : '无法获取')}</div>
+            </div>
+          </div>
+          <span class="badge ${dom.reachable ? 'ok' : 'fail'}">${dom.reachable ? '直连可达' : '直连异常'}</span>
+        </div>
+        <div class="kv-grid">
+          <div class="kv"><div class="kv-k">真实归属地</div><div class="kv-v">${escapeHtml(locStr)}</div></div>
+          <div class="kv"><div class="kv-k">国内运营商</div><div class="kv-v">${escapeHtml(dom.isp || '未知')}</div></div>
+          <div class="kv"><div class="kv-k">本机局域网 IP</div><div class="kv-v">${escapeHtml(r.local_network?.lan_ip || '--')} (${escapeHtml(r.local_network?.interface || '--')})</div></div>
+          <div class="kv"><div class="kv-k">当前系统 DNS</div><div class="kv-v">${escapeHtml((r.proxy_state?.dns_servers || []).slice(0,2).join(', ') || '--')}</div></div>
+        </div>`;
+
+      const ec = r.exit_check || {};
+      const exLoc = [ec.country || ec.loc, ec.region, ec.city].filter(Boolean).join(' · ') || '未连接';
+      const hopBadge = ec.ip_changed
+        ? `<span class="badge warn">⚠️ IP 跳变 (${escapeHtml(ec.ip_1)} → ${escapeHtml(ec.ip_2)})</span>`
+        : (ec.reachable ? '<span class="badge ok">🔒 出口 IP 固定</span>' : '<span class="badge fail">离线</span>');
+      document.getElementById('proxy-ip-card').innerHTML = `
+        <div class="ip-hero">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div class="ip-flag">${escapeHtml(ec.flag || '🌐')}</div>
+            <div>
+              <div class="muted">代理对外暴露出口（Antigravity / OpenAI 看到的你）</div>
+              <div class="ip-addr">${escapeHtml(ec.reachable ? ec.ip_1 : '无法探测')}</div>
+            </div>
+          </div>
+          <div class="grade-pill grade-${escapeHtml(ec.ai_grade || 'C')}" title="AI 线路适用评级">${escapeHtml(ec.ai_grade || '-')}</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          ${hopBadge}
+          <span class="badge ${ec.restricted_region ? 'fail' : 'info'}">${escapeHtml(ec.ip_attr_label || '未知属性')}</span>
+        </div>
+        <div class="muted">${escapeHtml(ec.ai_grade_reason || ec.error || '')}</div>
+        <div class="kv-grid">
+          <div class="kv"><div class="kv-k">出口国家 / 城市</div><div class="kv-v">${escapeHtml(ec.flag || '')} ${escapeHtml(exLoc)}</div></div>
+          <div class="kv"><div class="kv-k">出口运营商 / ASN</div><div class="kv-v">${escapeHtml(ec.isp || ec.asn || '未知')}</div></div>
+          <div class="kv"><div class="kv-k">Cloudflare 节点</div><div class="kv-v">${escapeHtml(ec.colo || '--')}</div></div>
+          <div class="kv"><div class="kv-k">二次稳定性复检 IP</div><div class="kv-v">${escapeHtml(ec.ip_2 || '--')}</div></div>
+        </div>`;
+    }
+
+    function renderSites(probes) {
+      const groups = [
+        { id: 'overseas_ai', title: '🤖 海外 AI 编程主力（核心工作流）' },
+        { id: 'domestic_ai', title: '🇨🇳 国内 AI 服务（必须直连，绝不能被梯子拖垮）' },
+        { id: 'dev_web', title: '🌐 常用海外网站与代码包源' },
+        { id: 'custom', title: '⭐ 我的自定义检测站点' }
+      ];
+      let html = '';
+      for (const g of groups) {
+        const list = (probes || []).filter(p => (p.group || 'overseas_ai') === g.id);
+        if (list.length === 0) continue;
+        html += `<div class="site-section-title">${g.title}</div><div class="site-grid">`;
+        html += list.map(p => {
+          const pct = p.ok ? Math.min(100, Math.max(8, Math.round((p.latency_ms / 2500) * 100))) : 100;
+          const delBtn = p.group === 'custom'
+            ? `<button class="btn sm danger" onclick="deleteCustomSite(${Number(p.key.replace('custom_',''))})">删</button>` : '';
+          return `
+            <div class="site-card">
+              <div class="site-top">
+                <div class="site-brand">
+                  <div class="site-icon">${ICONS[p.icon] || ICONS.globe}</div>
+                  <div style="min-width:0;">
+                    <div class="site-name">${escapeHtml(p.label)}</div>
+                    <div class="site-url">${escapeHtml(p.url.replace(/^https?:\/\//,''))}</div>
+                  </div>
+                </div>
+                <span class="badge ${escapeHtml(p.status)}">${p.http_code ? 'HTTP ' + p.http_code : '失败'}</span>
+              </div>
+              <div class="lat-bar"><div class="lat-fill ${escapeHtml(p.status)}" style="width:${pct}%"></div></div>
+              <div class="site-foot">
+                <span>${p.mode === 'direct' ? '直连' : '代理'} · ${p.latency_ms} ms · ${escapeHtml(p.reason)}</span>
+                <div style="display:flex;gap:5px;">
+                  <button class="btn sm" onclick="probeOne('${escapeHtml(p.key)}')">复测</button>
+                  ${delBtn}
+                </div>
+              </div>
+            </div>`;
+        }).join('');
+        html += '</div>';
+      }
+      document.getElementById('sites-container').innerHTML = html;
+    }
+
+    function renderNodeWall(m) {
+      const wall = document.getElementById('node-wall');
+      if (!m || !m.connected || !Array.isArray(m.node_items) || m.node_items.length === 0) {
+        wall.innerHTML = '<div class="muted" style="grid-column:1/-1;padding:12px 0;">切换到 Clash Verge Rev 后，这里会自动渲染你机场的所有节点卡片（带国旗图标、实时延迟条、点击即切）。</div>';
+        return;
+      }
+      wall.innerHTML = m.node_items.map(item => {
+        const delay = nodeDelays[item.name];
+        let delayHtml = '<span class="muted">未测速</span>';
+        if (delay === null) delayHtml = '<span class="badge fail">超时</span>';
+        else if (typeof delay === 'number') {
+          const cls = delay < 500 ? 'ok' : (delay < 1200 ? 'warn' : 'fail');
+          delayHtml = `<span class="badge ${cls}">${delay} ms</span>`;
+        }
+        const tagMap = { recommended: '<span class="badge ok">AI 推荐</span>', restricted: '<span class="badge fail">受限区</span>', info: '<span class="badge info">说明</span>', normal: '' };
+        return `
+          <div class="node-card ${item.is_current ? 'current' : ''}" data-group="${escapeHtml(m.active_group)}" data-node="${escapeHtml(item.name)}" onclick="switchNode(this.dataset.group, this.dataset.node)">
+            <div class="node-top">
+              <span style="font-size:18px;">${escapeHtml(item.flag || '🌐')}</span>
+              ${delayHtml}
+            </div>
+            <div class="node-name">${escapeHtml(item.name)}</div>
+            <div style="margin-top:6px;display:flex;gap:6px;align-items:center;">
+              ${item.is_current ? '<span class="badge ok">当前使用</span>' : ''}
+              ${tagMap[item.tag] || ''}
+            </div>
+          </div>`;
+      }).join('');
+    }
+    function renderAcademy(r) {
+      const ps = r.proxy_state || {};
+      const ec = r.exit_check || {};
+      const apps = escapeHtml((ps.running_apps || []).join('、') || '暂未检测到代理软件');
+      const dns = escapeHtml((ps.dns_servers || []).slice(0, 3).join(', ') || '系统默认');
+      const portTxt = escapeHtml(ps.effective_proxy_url || '未开启');
+      const hopTxt = ec.ip_changed ? `⚠️ 是！(${escapeHtml(ec.ip_1)} → ${escapeHtml(ec.ip_2)})` : '✅ 固定稳定';
+
+      const lessons = [
+        {
+          title: '第 1 课：为什么前端 UI 显示「已连接」，后端却卡死或一直在重复连接？',
+          body: '代理生效其实分 <strong>3 层</strong>：① 电脑系统设置里写着“把流量交给 127.0.0.1:某端口”（像一张纸条）；② 代理软件后端进程真的在这个端口上监听；③ 后端进程还能把数据真正转发到海外机场服务器。很多时候软件崩溃或卡死后，界面开关还是绿的、系统纸条还指着那个端口，但后端其实已经堵死——这就是“假连接”。',
+          live: `📍 你电脑此刻实测：运行中的代理 = [${apps}] · 系统配置端口 = [${portTxt}] · 端口是否真在监听 = [${ps.port_listening ? '✅ 是' : '❌ 否'}]`
+        },
+        {
+          title: '第 2 课：为什么不把小火箭关掉，连国内 DeepSeek 也回答不了？',
+          body: '访问任何网站第一步都要查 <strong>DNS（互联网电话簿）</strong> 把域名翻译成 IP。小火箭等软件开启全局/TUN 后，会把你的 DNS 强行改成虚拟地址 <code>198.18.0.2</code>（叫 Fake-IP）。只要梯子后端一卡顿，连查 DeepSeek 电话号码的请求也会卡死在 <code>198.18.0.2</code> 里！解法就是用 Clash 分流脚本把 DeepSeek 等国内域名设为 <code>DIRECT</code>（直连）。',
+          live: `📍 你电脑此刻实测：当前 DNS = [${dns}] · 是否处于 Fake-IP 托管状态 = [${ps.fake_ip_dns ? '⚠️ 是 (198.18.x)' : '✅ 否'}]`
+        },
+        {
+          title: '第 3 课：系统代理 vs TUN 虚拟网卡，为什么浏览器能开，编辑器/终端却连不上？',
+          body: 'Chrome 浏览器很听话，会自动遵守 macOS 的“系统代理”；但很多命令行工具（curl/git/python）和编辑器的底层进程（gRPC 长连接）<strong>根本不看系统代理</strong>！开启 <strong>TUN 模式</strong> 相当于在系统最底层装了一块虚拟网卡，能把编辑器和终端的所有流量无缝接管过去，这就是 Antigravity 必须靠稳定 TUN 或规范代理的原因。',
+          live: `📍 你电脑此刻实测：系统代理 [${ps.http_enabled ? '已开启' : '未开启'}] · 代理端口 [${portTxt}]`
+        },
+        {
+          title: '第 4 课：为什么梯子看着没断，Antigravity 却动不动 161s 重试？',
+          body: 'AI 长对话（尤其是写代码流式输出）对 <strong>出口 IP 稳定性</strong> 和 <strong>地区</strong> 极度敏感。两大致命雷区：① 节点落在<strong>香港/受限区</strong>直接被拒；② 机场开启了多出口轮询或 <code>url-test</code> 频繁换节点，导致 1 秒内你的出口 IP 从 A 跳到 B，Google/OpenAI 服务器会立刻掐断当前会话。正确姿势是用 <code>fallback（故障转移）</code>：平时死守 1 号干净节点绝不跳 IP，只有真挂了才自动切 2 号！',
+          live: `📍 你电脑此刻实测：当前出口 = [${escapeHtml(ec.flag || '')} ${escapeHtml(ec.ip_1 || '--')} (${escapeHtml(ec.loc || '--')})] · IP 跳变 = [${hopTxt}] · AI 评级 = [${escapeHtml(ec.ai_grade || '--')}]`
+        },
+        {
+          title: '第 5 课：常见报错状态码（200 / 204 / 401 / 403 / 421）人话速查表',
+          body: '<strong>HTTP 200 / 204</strong>：完全畅通！<br><strong>HTTP 401 / 404</strong>（测 API 接口时）：别慌！这说明网络其实完全通了，只是测活请求没带你的登录 Key，服务器正常礼貌回了一句“请先登录”。<br><strong>HTTP 403</strong>：当前节点所在国家/IP 被网站风控拉黑，换节点就行。<br><strong>HTTP 421</strong>：常见于 OpenAI/Codex，说明机场多用户共享连接或节点出口被拦截，换一个非共享/干净节点立刻解决。',
+          live: '💡 记住一个口诀：401/404 = 路通了；403/421/超时 = 路堵了或 IP 被拦，点「⚡ 一键切最优 AI 节点」即可！'
+        }
+      ];
+
+      document.getElementById('academy-lessons').innerHTML = lessons.map((l, idx) => `
+        <details class="lesson" ${idx === 0 ? 'open' : ''}>
+          <summary><span>${l.title}</span><span class="muted">展开 / 收起</span></summary>
+          <div class="lesson-body">
+            <div>${l.body}</div>
+            <div class="live-callout">${l.live}</div>
+          </div>
+        </details>
+      `).join('');
+    }
+
+    function render(data) {
+      currentState = data;
+      const r = data.report;
+      if (!r) return;
+
+      const badge = document.getElementById('overall-badge');
+      badge.className = `badge ${r.overall_status}`;
+      badge.textContent = statusText(r.overall_status);
+      document.getElementById('overall-summary').textContent = r.summary;
+      document.getElementById('last-check-time').textContent = `更新时间：${r.timestamp}`;
+      document.getElementById('btn-auto').textContent = `自动自愈：${data.config.auto_heal ? '已开启' : '已关闭'}`;
+      if (data.override_path) {
+        document.getElementById('override-path-text').textContent = `本机分流脚本位置：${data.override_path}`;
+      }
+
+      document.getElementById('pipeline').innerHTML = (r.pipeline || []).map(st => `
+        <div class="pipe-node ${escapeHtml(st.status)}">
+          <div class="pipe-top">
+            <span class="pipe-step">STEP 0${escapeHtml(st.step)}</span>
+            <span class="dot ${escapeHtml(st.status)}"></span>
+          </div>
+          <div class="pipe-title">${escapeHtml(st.title)}</div>
+          <div class="pipe-metric" title="${escapeHtml(st.metric)}">${escapeHtml(st.metric)}</div>
+          <div class="pipe-sum">${escapeHtml(st.summary)}</div>
+        </div>
+      `).join('');
+
+      document.getElementById('findings').innerHTML = (r.findings || []).map(f => `
+        <div class="finding">
+          <div class="finding-title"><span class="badge ${escapeHtml(f.level)}">${escapeHtml(f.level.toUpperCase())}</span>${escapeHtml(f.title)}</div>
+          <div class="finding-detail">${escapeHtml(f.detail)}</div>
+          <div class="finding-action">💡 解决建议：${escapeHtml(f.action)}</div>
+        </div>
+      `).join('');
+
+      renderChart(data.history);
+      renderAgWatchdog(data.antigravity_watchdog);
+      document.getElementById('events').innerHTML = (data.events || []).map(ev => `
+        <div class="event-item">
+          <span class="event-time">${escapeHtml(ev.timestamp)}</span>
+          <span class="badge ${escapeHtml(ev.level)}">${escapeHtml(ev.level)}</span>
+          <span>${escapeHtml(ev.message)}</span>
+        </div>
+      `).join('') || '<div class="muted">暂无事件记录</div>';
+
+      renderIpCards(r);
+      document.getElementById('dns-rows').innerHTML = (r.dns_checks || []).map(d => {
+        const cls = d.ip_type === 'real_ip' ? 'ok' : (d.ip_type === 'fake_ip' ? 'warn' : 'fail');
+        return `<tr>
+          <td>${escapeHtml(d.label)}</td>
+          <td><code>${escapeHtml(d.domain)}</code></td>
+          <td><code>${escapeHtml(d.resolved_ip || '--')}</code></td>
+          <td><span class="badge ${cls}">${escapeHtml(d.note)}</span></td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="4" class="muted">暂无 DNS 解析数据</td></tr>';
+
+      document.getElementById('ip-history-rows').innerHTML = (data.ip_history || []).slice(0, 30).map(h => `
+        <tr>
+          <td class="muted">${escapeHtml(h.time)}</td>
+          <td>${escapeHtml(h.flag || '🌐')} ${escapeHtml(h.country || '')} ${escapeHtml(h.city || '')}</td>
+          <td><code>${escapeHtml(h.ip)}</code>${h.hopped ? ' <span class="badge warn">跳变</span>' : ''}<div class="muted">${escapeHtml(h.isp || '')}</div></td>
+          <td><span class="badge ${h.grade === 'S' || h.grade === 'A' ? 'ok' : (h.grade === 'F' ? 'fail' : 'warn')}">${escapeHtml(h.grade || '-')}</span></td>
+        </tr>
+      `).join('') || '<tr><td colspan="4" class="muted">等待记录首次代理出口 IP...</td></tr>';
+
+      renderSites(r.probes);
+
+      const m = data.mihomo || {};
+      const mb = document.getElementById('mihomo-badge');
+      mb.className = `badge ${m.connected ? 'ok' : 'warn'}`;
+      mb.textContent = m.connected ? `已接管 (${m.version || 'Mihomo'})` : '未连接';
+      document.getElementById('mihomo-status-text').textContent = m.connected
+        ? `策略组 [${m.active_group}] 当前使用节点：${m.current_node}（共 ${(m.node_items || []).length} 个节点）`
+        : (m.error || '未检测到 Clash/Mihomo 控制端口');
+
+      if (document.activeElement.id !== 'cfg-api') document.getElementById('cfg-api').value = data.config.mihomo_api || '';
+      if (document.activeElement.id !== 'cfg-secret') document.getElementById('cfg-secret').value = data.config.mihomo_secret || '';
+      if (document.activeElement.id !== 'cfg-fail-th') document.getElementById('cfg-fail-th').value = data.config.fail_threshold ?? 5;
+      if (document.activeElement.id !== 'cfg-interval') document.getElementById('cfg-interval').value = data.config.check_interval_sec ?? 30;
+      if (document.activeElement.id !== 'cfg-cooldown-min') document.getElementById('cfg-cooldown-min').value = Math.max(1, Math.round((data.config.heal_cooldown_sec ?? 1800) / 60));
+      if (document.activeElement.id !== 'cfg-max-hour') document.getElementById('cfg-max-hour').value = data.config.max_heals_per_hour ?? 2;
+      if (document.activeElement.id !== 'cfg-max-day') document.getElementById('cfg-max-day').value = data.config.max_heals_per_day ?? 5;
+
+      const ab = data.anti_ban || {};
+      const abBadge = document.getElementById('anti-ban-badge');
+      const abQuota = document.getElementById('anti-ban-quota');
+      if (abBadge && abQuota) {
+        if (!data.config.auto_heal) {
+          abBadge.className = 'badge info';
+          abBadge.textContent = '当前为纯手动模式';
+        } else if (ab.allowed === false) {
+          abBadge.className = 'badge warn';
+          abBadge.textContent = '频率锁生效中（暂停自动切）';
+        } else {
+          abBadge.className = 'badge ok';
+          abBadge.textContent = '防封控守卫正常';
+        }
+        const coolMin = Math.round((ab.cooldown_sec ?? 1800) / 60);
+        const coolRem = ab.cooldown_remaining_sec ? ` · 冷却剩余 ${ab.cooldown_remaining_sec} 秒` : '';
+        const lastTxt = ab.last_auto_heal_time ? ` · 上次自动切换：${ab.last_auto_heal_time}` : ' · 近期零自动切换';
+        abQuota.textContent = `本小时自动切换：${ab.heals_last_hour ?? 0}/${ab.max_heals_per_hour ?? 2} 次 · 今日：${ab.heals_today ?? 0}/${ab.max_heals_per_day ?? 5} 次 · 最短冷却 ${coolMin} 分钟${coolRem}${lastTxt}`;
+      }
+
+      const gSel = document.getElementById('group-select');
+      if (m.connected && Array.isArray(m.all_groups)) {
+        gSel.innerHTML = m.all_groups.map(g => `<option value="${escapeHtml(g)}" ${g === m.active_group ? 'selected' : ''}>策略组：${escapeHtml(g)}</option>`).join('');
+      } else {
+        gSel.innerHTML = '<option>暂未连接 Clash Verge（按上方 3 步切入即可激活）</option>';
+      }
+      renderNodeWall(m);
+      renderAcademy(r);
+    }
+
+    async function refresh() {
+      try {
+        const res = await fetch('/api/status');
+        render(await res.json());
+      } catch (e) {
+        showToast('读取本机状态失败：' + e.message);
+      }
+    }
+
+    async function runCheck() {
+      const btn = document.getElementById('btn-check');
+      btn.disabled = true; btn.textContent = '⏳ 正在五步体检...';
+      try {
+        const res = await fetch('/api/check', { method: 'POST' });
+        render(await res.json());
+        showToast('✅ 五步全链路体检完成');
+      } finally {
+        btn.disabled = false; btn.textContent = '🔍 全面体检';
+      }
+    }
+
+    async function probeOne(key) {
+      showToast('正在复测单项...');
+      const res = await fetch('/api/probe-one', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key })
+      });
+      const data = await res.json();
+      if (data.snapshot) render(data.snapshot);
+      showToast(data.result?.ok ? '复测完成' : (data.result?.error || '复测失败'));
+    }
+
+    async function addCustomSite() {
+      const name = document.getElementById('site-name').value.trim();
+      const url = document.getElementById('site-url').value.trim();
+      const mode = document.getElementById('site-mode').value;
+      if (!url) { showToast('请先输入要检测的网址'); return; }
+      const res = await fetch('/api/sites', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name || url, url, mode })
+      });
+      render(await res.json());
+      document.getElementById('site-name').value = '';
+      document.getElementById('site-url').value = '';
+      showToast('✅ 已添加并完成首次测速');
+    }
+
+    async function deleteCustomSite(idx) {
+      const res = await fetch('/api/sites/' + idx, { method: 'DELETE' });
+      render(await res.json());
+      showToast('已删除自定义站点');
+    }
+
+    async function runHeal() {
+      const btn = document.getElementById('btn-heal');
+      btn.disabled = true; btn.textContent = '⏳ 测速切线中...';
+      try {
+        const res = await fetch('/api/heal', { method: 'POST' });
+        const data = await res.json();
+        if (data.snapshot) render(data.snapshot);
+        showToast(data.result?.message || '已执行自愈');
+      } finally {
+        btn.disabled = false; btn.textContent = '⚡ 一键切最优 AI 节点';
+      }
+    }
+
+    async function toggleAutoHeal() {
+      if (!currentState) return;
+      const next = !currentState.config.auto_heal;
+      const res = await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auto_heal: next })
+      });
+      render(await res.json());
+      showToast(next ? '✅ 已开启断网自动切节点自愈' : '已暂停自动切换');
+    }
+
+    async function saveConfig() {
+      const mihomo_api = document.getElementById('cfg-api').value.trim();
+      const mihomo_secret = document.getElementById('cfg-secret').value;
+      const fail_threshold = parseInt(document.getElementById('cfg-fail-th').value, 10) || 5;
+      const check_interval_sec = parseInt(document.getElementById('cfg-interval').value, 10) || 30;
+      const cooldownMin = parseInt(document.getElementById('cfg-cooldown-min').value, 10) || 30;
+      const heal_cooldown_sec = Math.max(60, cooldownMin * 60);
+      const max_heals_per_hour = parseInt(document.getElementById('cfg-max-hour').value, 10) || 2;
+      const max_heals_per_day = parseInt(document.getElementById('cfg-max-day').value, 10) || 5;
+      const payload = {
+        mihomo_api,
+        mihomo_secret,
+        fail_threshold,
+        check_interval_sec,
+        heal_cooldown_sec,
+        max_heals_per_hour,
+        max_heals_per_day
+      };
+      const res = await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      render(await res.json());
+      await runCheck();
+      showToast('✅ 配置已保存并重新探测');
+    }
+
+    async function onGroupChanged() {
+      const g = document.getElementById('group-select').value;
+      if (!g || g.includes('暂未连接')) return;
+      await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mihomo_group: g })
+      });
+      await runCheck();
+    }
+
+    async function switchNode(group, node) {
+      showToast(`正在切换到 ${node}...`);
+      const res = await fetch('/api/mihomo/switch', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group, node })
+      });
+      const data = await res.json();
+      if (data.snapshot) render(data.snapshot);
+      showToast(data.result?.message || '切换完成');
+    }
+
+    async function batchTestDelays() {
+      const btn = document.getElementById('btn-batch-test');
+      const g = document.getElementById('group-select').value;
+      if (!g || g.includes('暂未连接')) { showToast('请先切换到 Clash Verge'); return; }
+      btn.disabled = true; btn.textContent = '⏳ 批量测速中...';
+      try {
+        const res = await fetch('/api/mihomo/test-delays', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ group: g })
+        });
+        const data = await res.json();
+        nodeDelays = Object.assign(nodeDelays, data.delays || {});
+        if (currentState) renderNodeWall(currentState.mihomo);
+        showToast('✅ 节点批量测速完成');
+      } finally {
+        btn.disabled = false; btn.textContent = '🚀 批量测速当前组';
+      }
+    }
+
+    async function loadConnections() {
+      const res = await fetch('/api/mihomo/connections');
+      const data = await res.json();
+      const rows = document.getElementById('conn-rows');
+      const list = data.connections || [];
+      if (list.length === 0) {
+        rows.innerHTML = '<tr><td colspan="4" class="muted">暂无活跃连接（请确认已切换并运行 Clash Verge Rev）</td></tr>';
+        return;
+      }
+      rows.innerHTML = list.map(c => `
+        <tr>
+          <td><strong>${escapeHtml(c.process)}</strong></td>
+          <td><code>${escapeHtml(c.host)}</code></td>
+          <td class="muted">${escapeHtml(c.rule || '--')}</td>
+          <td><span class="badge ${(c.chains||[]).includes('DIRECT') ? 'ok' : 'info'}">${escapeHtml((c.chains || []).join(' → '))}</span></td>
+        </tr>
+      `).join('');
+      showToast(`已刷新 ${list.length} 条实时连接`);
+    }
+
+    function renderAgWatchdog(wd) {
+      const badge = document.getElementById('ag-wd-badge');
+      const counter = document.getElementById('ag-wd-counter');
+      const meta = document.getElementById('ag-wd-meta');
+      if (!badge || !counter || !meta || !wd) return;
+
+      const statusMap = {
+        healthy: ['ok', '日志正常'],
+        watching: ['warn', '轻微波动观察中'],
+        stalled: ['fail', '触发防空转切线'],
+        disabled: ['info', '已暂停']
+      };
+      const [cls, label] = statusMap[wd.status] || ['info', wd.status || '未知'];
+      badge.className = `badge ${cls}`;
+      badge.textContent = label;
+
+      const mins = Math.max(1, Math.round((wd.window_sec || 420) / 60));
+      counter.textContent = `近 ${mins} 分钟断流：${wd.recent_eof_count || 0} / ${wd.threshold || 4} 次`;
+
+      const parts = [
+        wd.silent_heal ? '静默自动切节点（不弹窗）' : '桌面通知+自动切换',
+        `累计自愈 ${wd.total_heals || 0} 次`
+      ];
+      if (!wd.log_exists) parts.push('未检测到 Antigravity 日志文件');
+      if (wd.last_heal_time && wd.last_heal_result) {
+        parts.push(`最近恢复（${wd.last_heal_time}）：${wd.last_heal_result}`);
+      } else if (wd.last_eof_time && wd.last_eof_detail) {
+        parts.push(`最近断流（${wd.last_eof_time}）：${wd.last_eof_detail}`);
+      }
+      meta.textContent = parts.join(' · ');
+    }
+
+    async function triggerAntigravityRecover() {
+      const btn = document.getElementById('btn-ag-recover');
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在切线恢复...'; }
+      try {
+        const res = await fetch('/api/antigravity/recover', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: '网页手动一键帮 Antigravity 换节点' })
+        });
+        const data = await res.json();
+        if (data.snapshot) render(data.snapshot);
+        showToast(data.result?.message || '已触发 Antigravity 节点恢复');
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⚡ 立即帮 Antigravity 换节点'; }
+      }
+    }
+
+    async function copyOverride() {
+      const res = await fetch('/api/override');
+      const text = await res.text();
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('✅ 已复制 clash-ai-override.js，去 Clash Verge 粘贴启用即可！');
+      } catch (_) {
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        document.execCommand('copy'); document.body.removeChild(ta);
+        showToast('✅ 已复制 clash-ai-override.js');
+      }
+    }
+
+    (function init() {
+      try {
+        const saved = localStorage.getItem('ai_net_guard_tab');
+        if (saved && document.getElementById('tab-' + saved)) switchTab(saved);
+      } catch (_) {}
+      refresh();
+      setInterval(refresh, 15000);
+    })();
+  </script>
+</body>
+</html>

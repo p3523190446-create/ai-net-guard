@@ -1,0 +1,27 @@
+[project]
+name = "ai-net-guard"
+version = "0.1.0"
+description = "AI 网络医生与自动自愈管家：四层网络诊断、国内 AI 防断连、Mihomo/Clash Verge 自动故障转移与中文可视化监控台"
+authors = [
+    { name = "panyuanhao", email = "panyuanhao@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.165.0",
+    "httpx>=0.28.1",
+    "pydantic>=2.14.4",
+    "uvicorn>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[project.scripts]
+ai-net = "ai_net_guard.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
